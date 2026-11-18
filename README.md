@@ -1,114 +1,110 @@
-<p align="center">
-  <a href="" rel="noopener">
- <img width=200px height=200px src="https://i.imgur.com/6wj0hh6.jpg" alt="Project logo"></a>
-</p>
+# Kubernetes Hands-on Practice
 
-<h3 align="center">Project Title</h3>
+This repository contains guided exercises for learning Kubernetes architecture, Pods, workload controllers, and cluster setup with AWS and kOps. Work through the labs in order and use a Kubernetes cluster you are allowed to modify.
 
-<div align="center">
+## Labs
 
-[![Status](https://img.shields.io/badge/status-active-success.svg)]()
-[![GitHub Issues](https://img.shields.io/github/issues/kylelobo/The-Documentation-Compendium.svg)](https://github.com/kylelobo/The-Documentation-Compendium/issues)
-[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/kylelobo/The-Documentation-Compendium.svg)](https://github.com/kylelobo/The-Documentation-Compendium/pulls)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](/LICENSE)
+### Lab 1: Cluster architecture and AWS setup with kOps
 
-</div>
+Read [Lab 01: Kubernetes Cluster Architecture and AWS Setup](CLuster-Architecure-Kops/README.md). It walks through Kubernetes architecture, preparing an AWS management instance, configuring IAM access, installing the management tools, and creating an S3 state store for kOps.
 
----
+### Lab 2: Pods and workload controllers
 
-<p align="center"> Few lines describing your project.
-    <br> 
-</p>
+Use the manifests in [Pod architecture and lifecycle](Pod%20architecture%20and%20lifecycle/) to practice creating and inspecting a Pod, a Deployment, and a DaemonSet.
 
-## 📝 Table of Contents
+## Prerequisites
 
-- [About](#about)
-- [Getting Started](#getting_started)
-- [Deployment](#deployment)
-- [Usage](#usage)
-- [Built Using](#built_using)
-- [TODO](../TODO.md)
-- [Contributing](../CONTRIBUTING.md)
-- [Authors](#authors)
-- [Acknowledgments](#acknowledgement)
+- A Kubernetes cluster that you can use for the exercises.
+- `kubectl` installed and configured to connect to that cluster.
+- For Lab 1, an AWS account and the tools and access described in its instructions.
 
-## 🧐 About <a name = "about"></a>
+Check your active context and cluster connection before you begin:
 
-Write about 1-2 paragraphs describing the purpose of your project.
-
-## 🏁 Getting Started <a name = "getting_started"></a>
-
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See [deployment](#deployment) for notes on how to deploy the project on a live system.
-
-### Prerequisites
-
-What things you need to install the software and how to install them.
-
-```
-Give examples
+```bash
+kubectl config current-context
+kubectl get nodes -o wide
 ```
 
-### Installing
+## Lab 2 walkthrough
 
-A step by step series of examples that tell you how to get a development env running.
+The examples use the `dev` and `qa` namespaces. Create them first:
 
-Say what the step will be
-
-```
-Give the example
-```
-
-And repeat
-
-```
-until finished
+```bash
+kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace qa --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-End with an example of getting some data out of the system or using it for a little demo.
+### Exercise 1: Create and inspect a Pod
 
-## 🔧 Running the tests <a name = "tests"></a>
+Open [`apache-pod.yaml`](Pod%20architecture%20and%20lifecycle/apache-pod.yaml). Before applying it, remove the `replicas: 2` line: `replicas` belongs to a workload controller such as a Deployment, not a Pod. The Pod has Apache and Jenkins containers.
 
-Explain how to run the automated tests for this system.
+Apply the manifest and inspect the Pod:
 
-### Break down into end to end tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-### And coding style tests
-
-Explain what these tests test and why
-
-```
-Give an example
+```bash
+kubectl apply -f "Pod architecture and lifecycle/apache-pod.yaml"
+kubectl wait --for=condition=Ready pod/apache-pod -n dev --timeout=180s
+kubectl get pod apache-pod -n dev -o wide
+kubectl describe pod apache-pod -n dev
+kubectl logs apache-pod -n dev -c apache-dev-container
 ```
 
-## 🎈 Usage <a name="usage"></a>
+When you are done, remove the standalone Pod before moving on:
 
-Add notes about how to use the system.
+```bash
+kubectl delete pod apache-pod -n dev
+```
 
-## 🚀 Deployment <a name = "deployment"></a>
+### Exercise 2: Run a Deployment and scale it
 
-Add additional notes about how to deploy this on a live system.
+Apply [`replica-deploy.yaml`](Pod%20architecture%20and%20lifecycle/replica-deploy.yaml). It creates two replicas, each with Apache and Jenkins containers.
 
-## ⛏️ Built Using <a name = "built_using"></a>
+```bash
+kubectl apply -f "Pod architecture and lifecycle/replica-deploy.yaml"
+kubectl rollout status deployment/apache-pod-deployment -n dev
+kubectl get deployment,replicaset,pods -n dev
+```
 
-- [MongoDB](https://www.mongodb.com/) - Database
-- [Express](https://expressjs.com/) - Server Framework
-- [VueJs](https://vuejs.org/) - Web Framework
-- [NodeJs](https://nodejs.org/en/) - Server Environment
+Scale the Deployment to three replicas and verify the result:
 
-## ✍️ Authors <a name = "authors"></a>
+```bash
+kubectl scale deployment/apache-pod-deployment --replicas=3 -n dev
+kubectl get deployment,pods -n dev
+```
 
-- [@kylelobo](https://github.com/kylelobo) - Idea & Initial work
+Observe how the Deployment and its ReplicaSet keep the requested number of Pods running. The manifest specifies two replicas, so applying it again restores that desired count.
 
-See also the list of [contributors](https://github.com/kylelobo/The-Documentation-Compendium/contributors) who participated in this project.
+### Exercise 3: Run a DaemonSet
 
-## 🎉 Acknowledgements <a name = "acknowledgement"></a>
+Apply [`daemon-deploy`](Pod%20architecture%20and%20lifecycle/daemon-deploy). The DaemonSet runs Fluent Bit on eligible nodes and mounts the host's container log directory read-only.
 
-- Hat tip to anyone whose code was used
-- Inspiration
-- References
+```bash
+kubectl apply -f "Pod architecture and lifecycle/daemon-deploy"
+kubectl rollout status daemonset/fluent-bit-agent -n qa
+kubectl get daemonset,pods -n qa -o wide
+```
+
+Compare the Pods' `NODE` values with `kubectl get nodes`. A DaemonSet creates a Pod on each eligible node; node taints or other scheduling constraints can affect placement.
+
+## Cleanup
+
+Remove the workloads when you finish:
+
+```bash
+kubectl delete -f "Pod architecture and lifecycle/daemon-deploy"
+kubectl delete deployment apache-pod-deployment -n dev --ignore-not-found
+kubectl delete pod apache-pod -n dev --ignore-not-found
+```
+
+If the `dev` and `qa` namespaces were created only for these exercises, remove them too:
+
+```bash
+kubectl delete namespace dev qa
+```
+
+## Manifest reference
+
+| File | Exercise |
+| --- | --- |
+| [`apache-pod.yaml`](Pod%20architecture%20and%20lifecycle/apache-pod.yaml) | A Pod with Apache and Jenkins containers; remove the invalid Pod-level `replicas` field before applying. |
+| [`replica-deploy.yaml`](Pod%20architecture%20and%20lifecycle/replica-deploy.yaml) | A Deployment with two replicas. |
+| [`daemon-deploy`](Pod%20architecture%20and%20lifecycle/daemon-deploy) | A Fluent Bit DaemonSet. |
