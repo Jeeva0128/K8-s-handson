@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: apache-pod
+  namespace: dev
+  labels:
+    app: apache
+    environment: dev
+spec:
+  containers:
+    - name: apache-dev-container
+      image: httpd:2.4
+      ports:
+        - containerPort: 80
+          protocol: TCP
+    - name: jenkins-dev-container
+      image: jenkins/jenkins:latest
+      ports:
+        - containerPort: 8080
+          protocol: TCP
+
