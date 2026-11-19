@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apache-production
+  namespace: prod
+  labels:
+    app: apache
+    environment: production
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: apache
+      environment: production
+  template:
+    metadata:
+      labels:
+        app: apache
+        environment: production
+    spec:
+      containers:
+        - name: apache-container
+          image: httpd:2.4
+          ports:
+            - containerPort: 80
+              protocol: TCP
