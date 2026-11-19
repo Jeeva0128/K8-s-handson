@@ -1,88 +1,103 @@
-# Pod Architecture and Lifecycle Lab
+# Pods and workload controllers: hands-on lab
 
-In this hands-on Minikube practice lab, create and inspect a multi-container Pod, manage replicas with Deployments, and run a DaemonSet across eligible nodes.
-
-For the repository overview and the AWS/kOps lab, see the [main README](../README.md).
-
-## Learning objectives
-
-- Inspect a Pod and its containers with `kubectl`.
-- Compare a standalone Pod with a Deployment-managed Pod.
-- Scale a Deployment and observe its ReplicaSet maintain the desired count.
-- Observe how a DaemonSet places one Pod on each eligible node.
+In this lab you will inspect a multi-container Pod, compare it with a
+Deployment, scale replicas, and observe a DaemonSet as nodes join the cluster.
+Run the commands from this directory.
 
 ## Prerequisites
 
-- A Minikube cluster, or another Kubernetes cluster you can use for the exercises.
-- `kubectl` configured to access that cluster.
-- `minikube` installed for the worker node exercise.
-- Run the commands in this guide from this directory.
-
-Check the active cluster before creating resources:
+You need a working Kubernetes context and `kubectl`. Install Minikube only if
+you want to add a worker node in Exercise 4.
 
 ```bash
 kubectl config current-context
 kubectl get nodes -o wide
 ```
 
-Create the namespaces used by the manifests:
+Create the namespaces once:
 
 ```bash
-kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
-kubectl create namespace qa --dry-run=client -o yaml | kubectl apply -f -
-kubectl create namespace prod --dry-run=client -o yaml | kubectl apply -f -
+for namespace in dev qa prod; do
+  kubectl create namespace "$namespace" --dry-run=client -o yaml | kubectl apply -f -
+done
 ```
 
-## Exercise 1: Create a Pod
+## Exercise 1: inspect and run a Pod
 
-Open [`apache-jenkins-pod.yaml`](apache-jenkins-pod.yaml). It defines a Pod with Apache and Jenkins containers in the `dev` namespace. Before applying it, remove the `replicas: 2` line: Pods do not support a `replicas` field; replica counts belong to workload controllers such as Deployments.
+Open [apache-jenkins-pod.yaml](apache-jenkins-pod.yaml) before applying it.
+Notice that it contains two containers, but also contains `replicas: 2` under
+`spec`. A Pod cannot declare replicas; remove that line in your working copy
+and save the file. A Deployment is the resource that owns replica counts.
 
-Apply the corrected manifest and inspect the Pod:
+Apply the corrected file and wait for both containers:
 
 ```bash
 kubectl apply -f apache-jenkins-pod.yaml
 kubectl wait --for=condition=Ready pod/apache-pod -n dev --timeout=180s
 kubectl get pod apache-pod -n dev -o wide
 kubectl describe pod apache-pod -n dev
-kubectl logs apache-pod -n dev -c apache-dev-container
 ```
 
-To view Apache locally, start port forwarding:
+Because this is one Pod with two containers, specify the container when reading
+logs:
 
 ```bash
-kubectl port-forward pod/apache-pod 8080:80 -n dev
+kubectl logs apache-pod -n dev -c apache-dev-container
+kubectl logs apache-pod -n dev -c jenkins-dev-container
 ```
 
-Keep that command running, then open `http://localhost:8080` or run `curl http://localhost:8080` in another terminal. Stop port forwarding with `Ctrl+C` when finished.
+In a second terminal, forward Apache to your workstation and make a request:
 
-Delete the standalone Pod before continuing:
+```bash
+kubectl port-forward pod/apache-pod -n dev 8080:80
+curl http://127.0.0.1:8080
+```
+
+Stop port forwarding with `Ctrl+C`, then remove the standalone Pod:
 
 ```bash
 kubectl delete pod apache-pod -n dev
 ```
 
-## Exercise 2: Use a Deployment and scale it
+## Exercise 2: let a Deployment maintain replicas
 
-Apply [`apache-jenkins-deployment.yaml`](apache-jenkins-deployment.yaml). It creates a Deployment with two replicas. Each Pod contains Apache and Jenkins containers.
+Read [apache-jenkins-deployment.yaml](apache-jenkins-deployment.yaml). Its
+selector must match the labels in the Pod template. Apply it and inspect the
+Deployment, ReplicaSet, and Pods it creates:
 
 ```bash
 kubectl apply -f apache-jenkins-deployment.yaml
 kubectl rollout status deployment/apache-pod-deployment -n dev
-kubectl get deployment,replicaset,pods -n dev
+kubectl get deployment,replicaset,pods -n dev -o wide
 ```
 
-Scale the Deployment to three replicas and check the result:
+Change the desired state from two to three replicas through the command line:
 
 ```bash
-kubectl scale deployment/apache-pod-deployment --replicas=3 -n dev
-kubectl get deployment,replicaset,pods -n dev
+kubectl scale deployment/apache-pod-deployment -n dev --replicas=3
+kubectl get deployment,pods -n dev
 ```
 
-The Deployment and ReplicaSet work together to maintain the requested number of Pods. The manifest declares two replicas, so reapplying it returns the Deployment to two.
+Delete one generated Pod and watch the Deployment replace it:
 
-## Exercise 3: Deploy Apache in the `prod` practice namespace
+```bash
+kubectl delete pod -n dev -l app=apache --wait=false
+kubectl get pods -n dev -w
+```
 
-Apply [`apache-production-deployment.yaml`](apache-production-deployment.yaml). It creates five Apache replicas in the `prod` namespace. Despite the namespace and filename, this is a local practice example, not a production-hardened deployment.
+Stop the watch with `Ctrl+C`. Reapplying the manifest returns the desired
+replica count to the value declared in the file:
+
+```bash
+kubectl apply -f apache-jenkins-deployment.yaml
+kubectl rollout status deployment/apache-pod-deployment -n dev
+```
+
+## Exercise 3: observe a five-replica Deployment
+
+Apply [apache-production-deployment.yaml](apache-production-deployment.yaml).
+The `prod` name is part of the exercise; this is not a production-ready
+configuration.
 
 ```bash
 kubectl apply -f apache-production-deployment.yaml
@@ -90,82 +105,62 @@ kubectl rollout status deployment/apache-production -n prod
 kubectl get deployment,replicaset,pods -n prod -o wide
 ```
 
-## Exercise 4: Run a DaemonSet
+Compare the Deployment selector and the labels on its Pods:
 
-Apply [`fluent-bit-daemonset.yaml`](fluent-bit-daemonset.yaml). It runs Fluent Bit on eligible nodes and mounts the node's `/var/log` directory read-only.
+```bash
+kubectl get pods -n prod --show-labels
+kubectl describe deployment apache-production -n prod
+```
+
+## Exercise 4: observe a DaemonSet on every eligible node
+
+Read [fluent-bit-daemonset.yaml](fluent-bit-daemonset.yaml), then apply it:
 
 ```bash
 kubectl apply -f fluent-bit-daemonset.yaml
 kubectl rollout status daemonset/fluent-bit-agent -n qa
 kubectl get daemonset,pods -n qa -o wide
+kubectl logs -n qa -l app=fluent-bit --tail=20
 ```
 
-Compare the `NODE` column with the output of `kubectl get nodes`. A DaemonSet creates one Pod on each eligible node; taints or other scheduling constraints can affect placement.
+Compare the Pods' `NODE` values with `kubectl get nodes`. A DaemonSet creates
+one Pod per eligible node, not a fixed replica count.
 
-### Add a worker node to Minikube
-
-Keep the DaemonSet running, then add a worker to your Minikube cluster:
+With Minikube, add a worker and observe the new DaemonSet Pod:
 
 ```bash
 minikube node add
-```
-
-Watch the new node join and become ready:
-
-```bash
 kubectl get nodes -w
-```
-
-When the new node is `Ready`, stop the watch with `Ctrl+C` and watch the DaemonSet Pods:
-
-```bash
 kubectl get pods -n qa -o wide -w
 ```
 
-The DaemonSet should create another Fluent Bit Pod for the new eligible node. Wait for it to reach `Running`, then stop the watch with `Ctrl+C`. Confirm that the DaemonSet has a ready Pod on each eligible node:
-
-```bash
-kubectl get daemonset fluent-bit-agent -n qa
-kubectl get pods -n qa -o wide
-```
-
-In the provided Minikube session, worker `minikube-m02` was initially `NotReady`, became `Ready` after about 50 seconds, and its Fluent Bit Pod moved from `ContainerCreating` to `Running` about 72 seconds after creation. Startup time varies. If a Pod remains in `ContainerCreating`, inspect its details and recent namespace events:
+Stop each watch with `Ctrl+C` after the new node and Pod become ready. If a
+Pod stays pending or is not ready, inspect the scheduling events:
 
 ```bash
 kubectl describe pod -n qa <pod-name>
 kubectl get events -n qa --sort-by=.lastTimestamp
 ```
 
-## Compare the workload types
-
-| Workload | What it does in this lab |
-| --- | --- |
-| Pod | Runs the Apache and Jenkins containers together in one Pod. |
-| Deployment | Maintains the requested number of replicated Pods and supports scaling. |
-| DaemonSet | Runs a Fluent Bit Pod on each eligible node. |
-
 ## Cleanup
 
-Remove the workloads when you finish:
-
 ```bash
-kubectl delete -f fluent-bit-daemonset.yaml
-kubectl delete deployment apache-pod-deployment -n dev --ignore-not-found
-kubectl delete deployment apache-production -n prod --ignore-not-found
+kubectl delete -f fluent-bit-daemonset.yaml --ignore-not-found
+kubectl delete -f apache-jenkins-deployment.yaml --ignore-not-found
+kubectl delete -f apache-production-deployment.yaml --ignore-not-found
 kubectl delete pod apache-pod -n dev --ignore-not-found
 ```
 
-If you created `dev`, `qa`, and `prod` only for this lab, remove them too. Deleting a namespace removes all resources inside it:
+If these namespaces are not shared with another lab:
 
 ```bash
 kubectl delete namespace dev qa prod
 ```
 
-## Manifest reference
+## What to remember
 
-| File | Resource |
+| Resource | Observation |
 | --- | --- |
-| [`apache-jenkins-pod.yaml`](apache-jenkins-pod.yaml) | Pod with Apache and Jenkins containers. Remove the Pod-level `replicas` field before applying. |
-| [`apache-jenkins-deployment.yaml`](apache-jenkins-deployment.yaml) | Two-replica Deployment with Apache and Jenkins containers. |
-| [`apache-production-deployment.yaml`](apache-production-deployment.yaml) | Five-replica Apache practice Deployment in the `prod` namespace. |
-| [`fluent-bit-daemonset.yaml`](fluent-bit-daemonset.yaml) | Fluent Bit DaemonSet for eligible nodes. |
+| Pod | Groups the Apache and Jenkins containers without replica management. |
+| Deployment | Uses a ReplicaSet to maintain and replace a desired number of Pods. |
+| DaemonSet | Places one Pod on each eligible node. |

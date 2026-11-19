@@ -1,167 +1,176 @@
-# Kubernetes Services Labs
+# Kubernetes Services: hands-on lab
 
-Practice exposing an Nginx Pod to other Pods with a `ClusterIP` Service, then exposing an Nginx Deployment with a `NodePort` Service created from the terminal. The labs use the manifests in [`ClusterIP/`](ClusterIP/) and [`Nodeport/`](Nodeport/).
+This lab makes the same Nginx application reachable in three different ways:
+inside the cluster with ClusterIP, through a node port, and through a cloud
+load balancer. Read the manifests before running them so that labels,
+selectors, ports, and namespaces are not magic values.
 
-For the repository overview and the Pod/workload exercises, see the [main README](../README.md).
-
-## Learning objectives
-
-- Inspect Pod labels and understand how a Service selector finds its backends.
-- Inspect the ClusterIP Service and its EndpointSlice.
-- Send an HTTP request from another Pod using the Service's DNS name.
-- Create a NodePort Service with `kubectl expose` and inspect its assigned port.
+Run commands from the repository root unless a command says otherwise.
 
 ## Prerequisites
-
-- A Kubernetes cluster you can use for the exercise.
-- `kubectl` configured to access that cluster.
-- `minikube` if using the Minikube access command in the NodePort exercise.
-- Run the commands below from the repository root, or adjust the manifest paths if you start elsewhere.
-
-Check which cluster you are connected to and create the namespace if it does not exist:
 
 ```bash
 kubectl config current-context
 kubectl get nodes -o wide
 kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace qa --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace prod --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-## Exercise: deploy and inspect the Service
+## Exercise 1: ClusterIP and in-cluster DNS
 
-Apply the Nginx server Pod and its ClusterIP Service:
+Read the Pod and Service in `ClusterIP/`. The Service selector must match the
+Pod label `app: nginx-server`.
 
 ```bash
 kubectl apply -f "Kubernetes Services/ClusterIP/nginx-server.yaml"
 kubectl apply -f "Kubernetes Services/ClusterIP/nginx-service.yaml"
 kubectl wait --for=condition=Ready pod/nginx-server -n dev --timeout=120s
-```
-
-Inspect the Pod, Service, and endpoints:
-
-```bash
 kubectl get pod nginx-server -n dev --show-labels -o wide
 kubectl get service nginx-service -n dev -o wide
-kubectl describe service nginx-service -n dev
 kubectl get endpointslice -n dev -l kubernetes.io/service-name=nginx-service
 ```
 
-The Service selects Pods labeled `app: nginx-server` and forwards TCP port `80` to the selected Pod's port `80`. The EndpointSlice should show the address of the Nginx Pod. If there are no endpoints, compare the Pod labels with the Service selector and check that the Pod is ready.
+If the EndpointSlice has no addresses, compare the Pod labels with the Service
+selector and inspect the Pod:
 
-## Exercise: connect from a client Pod
+```bash
+kubectl describe pod nginx-server -n dev
+kubectl describe service nginx-service -n dev
+```
 
-Create the BusyBox client Pod and wait for it to become ready:
+Create the BusyBox client and send the request from inside the cluster:
 
 ```bash
 kubectl apply -f "Kubernetes Services/ClusterIP/client-pod.yaml"
 kubectl wait --for=condition=Ready pod/client-pod -n dev --timeout=120s
-kubectl get pods -n dev -o wide
-```
-
-Run a request from the client Pod using the Service's short DNS name:
-
-```bash
 kubectl exec -n dev client-pod -- wget -qO- http://nginx-service
-```
-
-You should see the Nginx welcome page HTML. Because both Pods are in `dev`, `nginx-service` resolves to the Service in that namespace. You can also try the fully qualified Service name:
-
-```bash
 kubectl exec -n dev client-pod -- wget -qO- http://nginx-service.dev.svc.cluster.local
 ```
 
-Check the Service's cluster-internal IP and compare it with the server Pod address:
+The Nginx HTML response proves that Kubernetes DNS resolved the Service and
+that the Service forwarded traffic to its endpoint. The ClusterIP is stable;
+the Pod IP is not.
+
+## Exercise 2: create a NodePort from the terminal
+
+Read `Nodeport/nginx-qa-deploy.yaml`, then create its two Nginx replicas:
 
 ```bash
-kubectl get service nginx-service -n dev -o wide
-kubectl get pod nginx-server -n dev -o wide
-```
-
-The ClusterIP is a stable in-cluster address for reaching the Service. Clients should use the Service name instead of relying on a Pod IP, which can change when a Pod is replaced.
-
-## Exercise: expose a Deployment with NodePort
-
-This exercise deploys two Nginx replicas in the `qa` namespace. Create the namespace if needed, then apply the Deployment manifest:
-
-```bash
-kubectl create namespace qa --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f "Kubernetes Services/Nodeport/nginx-qa-deploy.yaml"
-kubectl rollout status deployment/nginx-qa -n qa --timeout=120s
+kubectl rollout status deployment/nginx-qa -n qa
 kubectl get deployment,pods -n qa -o wide
 ```
 
-Create a NodePort Service from the terminal. The Service selects the Deployment's `app: nginx-qa` Pods and exposes port `80`:
+Now create the Service yourself. The command intentionally demonstrates how a
+Service can be created without a Service manifest:
 
 ```bash
-kubectl expose deployment nginx-qa --type=NodePort --port=80 --target-port=80 -n qa
+kubectl expose deployment nginx-qa \
+  --name=nginx-qa \
+  --type=NodePort \
+  --port=80 \
+  --target-port=80 \
+  -n qa
 ```
 
-Inspect the Service, allocated node port, endpoints, and node addresses:
+Inspect the generated object instead of assuming its port:
 
 ```bash
 kubectl get service nginx-qa -n qa -o wide
 kubectl describe service nginx-qa -n qa
 kubectl get endpointslice -n qa -l kubernetes.io/service-name=nginx-qa
-kubectl get nodes -o wide
 kubectl get service nginx-qa -n qa -o jsonpath='{.spec.ports[0].nodePort}{"\n"}'
+kubectl get nodes -o wide
 ```
 
-The last command prints the dynamically assigned NodePort. From a machine that can reach a cluster node, request `http://<node-ip>:<node-port>` using an address from `kubectl get nodes -o wide` and the port printed above. With Minikube, you can ask it for a reachable URL and request that URL:
+With Minikube, ask Minikube for a reachable URL and request it from another
+terminal:
 
 ```bash
 minikube service nginx-qa -n qa --url
+curl "$(minikube service nginx-qa -n qa --url)"
 ```
 
-Copy the URL printed by Minikube and run `curl` with that URL from another terminal. NodePort makes the Service available on a port on each node. Whether that node address is reachable from your workstation depends on the cluster's network and firewall configuration.
+On another cluster, combine a reachable node address with the NodePort printed
+above: `curl http://<node-ip>:<node-port>`. Firewalls and the cluster network
+may prevent access from your workstation.
 
-## Troubleshooting command practice
-
-If the client request fails, inspect the resources and recent events:
+The directory also contains [nginx-deport.yaml](Nodeport/nginx-deport.yaml), a
+declarative alternative that fixes the NodePort at `30080`. Use it instead of
+the `kubectl expose` exercise when you want to compare imperative and
+declarative Service creation:
 
 ```bash
-kubectl describe pod nginx-server -n dev
-kubectl describe pod client-pod -n dev
-kubectl describe service nginx-service -n dev
-kubectl get endpointslice -n dev -l kubernetes.io/service-name=nginx-service
+kubectl apply -f "Kubernetes Services/Nodeport/nginx-deport.yaml"
+kubectl get service nginx-nodeport -n qa
+kubectl get endpointslice -n qa -l kubernetes.io/service-name=nginx-nodeport
+```
+
+The fixed port must be available on every node. Delete this alternative before
+reusing the namespace:
+
+```bash
+kubectl delete -f "Kubernetes Services/Nodeport/nginx-deport.yaml" --ignore-not-found
+```
+
+## Exercise 3: use a LoadBalancer
+
+Read both files in `LoadBalancer-Services/`. The Deployment labels Pods with
+`app: nginx-production`, which is the selector used by the Service:
+
+```bash
+kubectl apply -f "Kubernetes Services/LoadBalancer-Services/nginx-prod.yaml"
+kubectl apply -f "Kubernetes Services/LoadBalancer-Services/nginx-loadbalancer.yaml"
+kubectl rollout status deployment/nginx-production -n prod
+kubectl get deployment,pods -n prod -o wide
+kubectl get service nginx-loadbalancer -n prod -w
+```
+
+Stop the watch with `Ctrl+C` after checking `EXTERNAL-IP` or `EXTERNAL-HOSTNAME`.
+On a cloud cluster, use the assigned address:
+
+```bash
+kubectl get service nginx-loadbalancer -n prod -o wide
+curl http://<external-address>
+```
+
+On Minikube, run `minikube tunnel` in a separate terminal before checking the
+Service. Without a cloud integration or tunnel, `<pending>` is expected; the
+Service can still be inspected internally.
+
+## Troubleshooting practice
+
+Use events and EndpointSlices to find the cause rather than repeatedly
+reapplying manifests:
+
+```bash
 kubectl get events -n dev --sort-by=.lastTimestamp
-```
-
-For the NodePort exercise, inspect the Deployment, Service, endpoints, and events in `qa`:
-
-```bash
-kubectl describe deployment nginx-qa -n qa
-kubectl describe service nginx-qa -n qa
-kubectl get endpointslice -n qa -l kubernetes.io/service-name=nginx-qa
 kubectl get events -n qa --sort-by=.lastTimestamp
+kubectl get events -n prod --sort-by=.lastTimestamp
+kubectl describe service nginx-service -n dev
+kubectl describe service nginx-qa -n qa
+kubectl describe service nginx-loadbalancer -n prod
 ```
 
 ## Cleanup
-
-Delete only the resources from this exercise:
 
 ```bash
 kubectl delete -f "Kubernetes Services/ClusterIP/client-pod.yaml" --ignore-not-found
 kubectl delete -f "Kubernetes Services/ClusterIP/nginx-service.yaml" --ignore-not-found
 kubectl delete -f "Kubernetes Services/ClusterIP/nginx-server.yaml" --ignore-not-found
-```
-
-For the NodePort exercise, remove the Service created by `kubectl expose` and then the Deployment:
-
-```bash
 kubectl delete service nginx-qa -n qa --ignore-not-found
 kubectl delete -f "Kubernetes Services/Nodeport/nginx-qa-deploy.yaml" --ignore-not-found
+kubectl delete -f "Kubernetes Services/LoadBalancer-Services/nginx-loadbalancer.yaml" --ignore-not-found
+kubectl delete -f "Kubernetes Services/LoadBalancer-Services/nginx-prod.yaml" --ignore-not-found
 ```
 
-If you created `dev` and `qa` only for these Services exercises and are done with any other work in them, remove the namespaces after deleting the lab resources. Namespace deletion also removes every other resource in those namespaces:
+Delete `dev`, `qa`, and `prod` only when they are not shared with another lab.
 
-```bash
-kubectl delete namespace dev qa
-```
+## Manifest map
 
-## Manifest reference
-
-| File | Resource |
+| Directory | Resources |
 | --- | --- |
-| [`nginx-server.yaml`](ClusterIP/nginx-server.yaml) | Nginx server Pod labeled `app: nginx-server`. |
-| [`nginx-service.yaml`](ClusterIP/nginx-service.yaml) | ClusterIP Service selecting the Nginx Pod on port 80. |
-| [`client-pod.yaml`](ClusterIP/client-pod.yaml) | BusyBox client Pod for in-cluster DNS and HTTP request practice. |
-| [`nginx-qa-deploy.yaml`](Nodeport/nginx-qa-deploy.yaml) | Two-replica Nginx Deployment used to practice creating a NodePort Service with `kubectl expose`. |
+| `ClusterIP/` | Nginx Pod, ClusterIP Service, and BusyBox client Pod. |
+| `Nodeport/` | Two-replica Nginx Deployment, plus imperative and declarative NodePort examples. |
+| `LoadBalancer-Services/` | Three-replica Nginx Deployment and LoadBalancer Service. |

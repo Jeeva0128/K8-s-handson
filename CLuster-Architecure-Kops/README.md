@@ -1,289 +1,147 @@
-# Lab 01 – Kubernetes Cluster Architecture & AWS Setup using kOps
-
-\<p align="center">   \<img src="[https://img.shields.io/badge/Kubernetes-Hands--On-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white](https://img.shields.io/badge/Kubernetes-Hands--On-326CE5?style=for-the-badge\&logo=kubernetes\&logoColor=white)" />   \<img src="[https://img.shields.io/badge/AWS-Infrastructure-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white](https://img.shields.io/badge/AWS-Infrastructure-FF9900?style=for-the-badge\&logo=amazonaws\&logoColor=white)" />   \<img src="[https://img.shields.io/badge/kOps-Cluster%20Management-blue?style=for-the-badge](https://img.shields.io/badge/kOps-Cluster%20Management-blue?style=for-the-badge)" /> \</p>
-
-## Overview
-
-This lab focuses on understanding Kubernetes architecture and preparing an AWS environment for provisioning a self-managed Kubernetes cluster using kOps.
-
-The objective is to understand container orchestration, prepare an EC2 management machine, configure AWS IAM authentication, install Kubernetes management tools, and establish an S3 bucket as the kOps state store.
-
-**Platform:** AWS
-**Operating System:** Amazon Linux 2023
-**Cluster Management Tool:** kOps
-**Kubernetes CLI:** kubectl
-
----
-
-# Part 1 – Kubernetes Architecture & Fundamentals
-
-## 1. Monolithic vs Microservices Architecture
-
-### Monolithic Architecture
-
-A monolithic application is developed as a single application where multiple functionalities are packaged and deployed together.
-
-### Microservices Architecture
-
-Microservices architecture divides an application into smaller, independently deployable services.
-
-Example of an e-commerce application:
-
-- Authentication Service
-- User Management Service
-- Product Service
-- Payment Service
-- Order Management Service
-
-### Comparison
-
-| Monolithic                 | Microservices                 |
-| -------------------------- | ----------------------------- |
-| Single application         | Multiple independent services |
-| Tightly coupled components | Loosely coupled services      |
-| Single deployment unit     | Independent deployments       |
-| Application-wide scaling   | Individual service scaling    |
-
-## 2. Containerization and Orchestration
-
-Docker provides containerization by packaging applications and their dependencies into portable containers.
-
-However, managing multiple containers across multiple servers introduces challenges:
-
-- Manual deployment.
-- Container failure recovery.
-- Application scaling.
-- Networking between containers.
-- Workload management.
-
-Kubernetes addresses these challenges through container orchestration.
-
-## 3. Kubernetes Architecture
-
-A Kubernetes cluster consists of two major components:
-
-### Control Plane
-
-The control plane manages the overall cluster.
-
-| Component                | Responsibility                                       |
-| ------------------------ | ---------------------------------------------------- |
-| API Server               | Handles Kubernetes API requests                      |
-| etcd                     | Stores cluster data and state                        |
-| Scheduler                | Assigns Pods to worker nodes                         |
-| Controller Manager       | Maintains the desired state                          |
-| Cloud Controller Manager | Integrates with cloud infrastructure when configured |
-
-### Worker Nodes
-
-Worker nodes execute application workloads.
-
-| Component         | Responsibility                                 |
-| ----------------- | ---------------------------------------------- |
-| kubelet           | Ensures assigned Pods are running              |
-| kube-proxy        | Implements Service networking rules where used |
-| Container Runtime | Executes containers                            |
-
-## 4. Application Deployment Workflow
-
-**Scenario:** A developer requests deployment of a web application with three replicas.
-
-1. Developer submits a Deployment manifest.
-2. API Server validates the request.
-3. Desired configuration is stored in etcd.
-4. Deployment controller observes the requested state.
-5. ReplicaSet controller ensures three Pods are created.
-6. Scheduler selects suitable worker nodes.
-7. Kubelet receives the Pod specifications.
-8. Container runtime starts the containers.
-9. Kubernetes monitors the application state.
-
-**Expected result:** Kubernetes works toward maintaining three application replicas.
-
----
-
-# Part 2 – AWS Management Environment & IAM Configuration
-
-## 1. EC2 Management Machine
-
-Created an AWS EC2 instance to act as the Kubernetes management machine.
-
-### Instance Configuration
-
-| Configuration | Value                             |
-| ------------- | --------------------------------- |
-| Instance Name | kops-client                       |
-| AMI           | Amazon Linux 2023                 |
-| Architecture  | 64-bit x86                        |
-| Instance Type | t3.micro                          |
-| Storage       | 30 GB gp3                         |
-| Access        | SSH                               |
-| Purpose       | Kubernetes cluster administration |
-
-The management instance is used to execute AWS CLI, kOps and kubectl operations.
-
-## 2. IAM Role Configuration
-
-Created an IAM role to allow the EC2 management machine to communicate with AWS services.
-
-| Configuration   | Value                    |
-| --------------- | ------------------------ |
-| Role Name       | kops-admin-role          |
-| Trusted Entity  | EC2                      |
-| Attached Policy | AdministratorAccess      |
-| Association     | kops-client EC2 instance |
-
-### Why IAM Roles?
-
-IAM roles allow EC2 instances to obtain temporary security credentials without storing permanent AWS access keys.
-
-For this learning environment, AdministratorAccess was used to simplify infrastructure provisioning. Production environments should use least-privilege permissions.
-
-## 3. AWS Management Tools
-
-Prepared the management environment with the following tools:
-
-| Tool    | Purpose                                    |
-| ------- | ------------------------------------------ |
-| AWS CLI | Communicates with AWS services             |
-| kOps    | Provisions and manages Kubernetes clusters |
-| kubectl | Communicates with Kubernetes clusters      |
-
-### AWS Authentication Verification
-
-Verified that the EC2 instance successfully authenticated using its attached IAM role.
-
-**Expected identity format:**
-
-`arn:aws:sts::ACCOUNT-ID:assumed-role/kops-admin-role/SESSION-NAME`
-
-Temporary IAM credentials were used instead of manually configured permanent access keys.
-
----
-
-# Part 3 – S3 State Store Configuration & Final Validation
-
-## 1. Create S3 State Store
-
-Created a dedicated Amazon S3 bucket to maintain kOps cluster configuration and state.
-
-### S3 Bucket Configuration
-
-| Configuration   | Value                    |
-| --------------- | ------------------------ |
-| Bucket Name     | kubernetes-lab1-15-11-26 |
-| Region          | us-east-1 (N. Virginia)  |
-| Bucket Type     | General Purpose          |
-| Versioning      | Enabled                  |
-| Encryption      | SSE-S3 (AES256)          |
-| Public Access   | Blocked                  |
-| Bucket Policy   | No custom policy         |
-| Lifecycle Rules | Not configured           |
-| Tags            | Not configured           |
-
-## 2. S3 Security Configuration
-
-### Public Access Protection
-
-All four Block Public Access settings were enabled:
-
-- BlockPublicAcls
-- IgnorePublicAcls
-- BlockPublicPolicy
-- RestrictPublicBuckets
-
-### Encryption
-
-Enabled default server-side encryption using SSE-S3 (AES256).
-
-### Versioning
-
-Enabled bucket versioning to retain previous versions of objects and support recovery from accidental overwrites.
-
-## 3. S3 State Store – Purpose
-
-The kOps state store maintains cluster configuration and state information.
-
-It provides persistent storage independently of the EC2 management machine.
-
-**Important distinction:**
-
-| S3 State Store                              | Kubernetes etcd                      |
-| ------------------------------------------- | ------------------------------------ |
-| Used by kOps                                | Used by Kubernetes                   |
-| Stores kOps cluster configuration and state | Stores live Kubernetes cluster data  |
-| Independent of management EC2               | Part of the Kubernetes control plane |
-
-## 4. AWS Infrastructure Validation
-
-Completed final validation of the AWS environment.
-
-| Verification                | Result |
-| --------------------------- | ------ |
-| AWS assumed-role identity   | PASSED |
-| EC2-to-S3 access            | PASSED |
-| S3 bucket location          | PASSED |
-| S3 versioning               | PASSED |
-| S3 encryption               | PASSED |
-| S3 public access protection | PASSED |
-| kOps installation           | PASSED |
-| kubectl installation        | PASSED |
-| AWS CLI installation        | PASSED |
-| Temporary IAM credentials   | PASSED |
-| kOps state store            | PASSED |
-
-### Final Verification Summary
-
-**11 out of 11 verification checks passed.**
-
-The AWS management environment and S3 state store were successfully validated.
-
----
-
-# Key Learnings
-
-Through this lab, I learned:
-
-- Kubernetes cluster architecture and component responsibilities.
-- Differences between monolithic and microservices architectures.
-- Containerization and container orchestration concepts.
-- AWS EC2 infrastructure preparation.
-- IAM roles and temporary AWS credentials.
-- AWS CLI, kOps and kubectl setup.
-- S3 state-store configuration.
-- S3 security, versioning and encryption.
-- AWS infrastructure validation.
-
----
-
-# Lab Completion Status
-
-| Part   | Description                       | Status    |
-| ------ | --------------------------------- | --------- |
-| Part 1 | Kubernetes Architecture           | Completed |
-| Part 2 | AWS Management Environment & IAM  | Completed |
-| Part 3 | S3 State Store & Final Validation | Completed |
-
-**Overall Result:** Lab 01 successfully completed.
-
----
-
-## Next Lab
-
-**Lab 02 – Kubernetes Cluster Provisioning using kOps**
-
-Planned activities:
-
-- Configure kOps cluster specifications.
-- Configure the Kubernetes cluster name.
-- Connect kOps with the S3 state store.
-- Configure AWS networking and DNS requirements.
-- Provision the Kubernetes control plane and worker nodes.
-- Validate the deployed cluster.
-
----
-
-**Project:** Kubernetes Hands-on Practice
-**Lab:** 01 – Cluster Architecture & AWS Setup using kOps
-**Platform:** AWS
-**Status:** Completed
+# Kubernetes architecture and AWS/kOps preparation
+
+This is the AWS-focused lab. You will identify the Kubernetes control plane and
+worker-node components, prepare an EC2 management host, verify IAM access, and
+configure an S3 bucket for kOps state. It does **not** create a Kubernetes
+cluster yet.
+
+AWS resources can incur charges. Use an account and region you are permitted
+to use, choose a unique bucket name, and delete resources when the lab is
+complete. Do not copy the example names into a shared AWS account.
+
+## Part 1: map the architecture
+
+Before using AWS, write down what each component does:
+
+| Component | Role |
+| --- | --- |
+| API server | Accepts and validates Kubernetes API requests. |
+| etcd | Stores Kubernetes cluster state for the control plane. |
+| Scheduler | Selects a worker node for unscheduled Pods. |
+| Controller manager | Reconciles the desired and observed states. |
+| kubelet | Runs and reports the Pods assigned to a node. |
+| kube-proxy | Helps implement Service networking on a node. |
+| Container runtime | Starts and manages containers. |
+
+Trace this example on paper: a Deployment requests three replicas; the API
+server stores it, controllers create Pods, the scheduler assigns nodes, and
+kubelets start the containers.
+
+## Part 2: prepare an EC2 management host
+
+Create an Amazon Linux 2023 EC2 instance in the region you intend to use. For a
+practice environment, record the instance ID, region, public address, and
+attached IAM role. Keep SSH restricted to your own address.
+
+Connect to the instance, then verify the operating system and identity:
+
+```bash
+cat /etc/os-release
+aws --version
+aws sts get-caller-identity
+```
+
+The identity should show the assumed IAM role, not a long-lived access key
+embedded in a file. If `aws sts get-caller-identity` fails, fix the instance
+profile or IAM permissions before continuing.
+
+Install or verify the tools needed by the next kOps lab:
+
+```bash
+command -v aws
+command -v kubectl
+command -v kops
+kubectl version --client
+kops version
+```
+
+Use the official installation instructions for your Amazon Linux image if a
+command is missing. Avoid downloading an unverified binary or placing
+credentials in the repository.
+
+## Part 3: create and secure the kOps state store
+
+Choose values for your own session. The bucket name must be globally unique;
+the state store region should match the region where you will run kOps:
+
+```bash
+export AWS_REGION=<your-aws-region>
+export KOPS_STATE_BUCKET=<globally-unique-bucket-name>
+```
+
+Create the bucket using the syntax for your region. `us-east-1` does not use a
+location constraint; other regions do:
+
+```bash
+aws s3api create-bucket \
+  --bucket "$KOPS_STATE_BUCKET" \
+  --region "$AWS_REGION" \
+  $(test "$AWS_REGION" = us-east-1 || printf '%s\n' "--create-bucket-configuration" "LocationConstraint=$AWS_REGION")
+```
+
+If your shell does not accept the conditional argument above, run the
+appropriate explicit command instead:
+
+```bash
+aws s3api create-bucket --bucket "$KOPS_STATE_BUCKET" --region us-east-1
+aws s3api create-bucket --bucket "$KOPS_STATE_BUCKET" --region <other-region> \
+  --create-bucket-configuration LocationConstraint=<other-region>
+```
+
+Enable the protections kOps state should have:
+
+```bash
+aws s3api put-bucket-versioning \
+  --bucket "$KOPS_STATE_BUCKET" \
+  --versioning-configuration Status=Enabled
+aws s3api put-public-access-block \
+  --bucket "$KOPS_STATE_BUCKET" \
+  --public-access-block-configuration \
+  BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+aws s3api put-bucket-encryption \
+  --bucket "$KOPS_STATE_BUCKET" \
+  --server-side-encryption-configuration \
+  '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+```
+
+Check each setting and confirm that the bucket is reachable from the EC2
+instance:
+
+```bash
+aws s3api get-bucket-location --bucket "$KOPS_STATE_BUCKET"
+aws s3api get-bucket-versioning --bucket "$KOPS_STATE_BUCKET"
+aws s3api get-public-access-block --bucket "$KOPS_STATE_BUCKET"
+aws s3api get-bucket-encryption --bucket "$KOPS_STATE_BUCKET"
+aws s3 ls "s3://$KOPS_STATE_BUCKET"
+```
+
+The bucket is kOps' persistent configuration/state store. It is not the
+Kubernetes control plane's etcd; etcd stores live cluster data inside the
+cluster.
+
+## Completion checklist
+
+- [ ] The Kubernetes control-plane and worker-node roles are understood.
+- [ ] `aws sts get-caller-identity` succeeds through the EC2 IAM role.
+- [ ] `aws`, `kubectl`, and `kops` are available on the management host.
+- [ ] The S3 bucket is private, encrypted, and versioned.
+- [ ] The bucket region and name have been recorded for the next lab.
+
+## Cleanup
+
+Do not delete the bucket until you have finished any later kOps lab that uses
+it. When it is no longer needed, remove its objects and then the bucket:
+
+```bash
+aws s3 rm "s3://$KOPS_STATE_BUCKET" --recursive
+aws s3api delete-bucket --bucket "$KOPS_STATE_BUCKET" --region "$AWS_REGION"
+```
+
+Also stop or terminate the practice EC2 instance when you are finished, and
+remove the IAM role only after confirming that no other resource uses it.
+
+## Next step
+
+Use the recorded bucket name as `s3://<bucket-name>` when configuring the kOps
+cluster in the next lab. Keep the cluster name, DNS strategy, VPC, and
+availability zones explicit before running `kops create cluster`.
