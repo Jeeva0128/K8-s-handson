@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-production
+  namespace: prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-production
+  template:
+    metadata:
+      labels:
+        app: nginx-production
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:stable-alpine
+          ports:
+            - containerPort: 80
