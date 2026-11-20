@@ -4,6 +4,14 @@ This repository is a small, command-driven Kubernetes lab. Each directory gives
 you manifests to inspect and commands to run against a cluster that you are
 allowed to modify.
 
+<p align="center">
+  <img
+    src="minikubelinkedin.drawio.png"
+    alt="Kubernetes Minikube Architecture"
+    width="100%"
+  />
+</p>
+
 ## Labs
 
 1. [Cluster architecture and AWS/kOps preparation](CLuster-Architecure-Kops/README.md)
