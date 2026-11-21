@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="280" viewBox="0 0 900 280" role="img" aria-labelledby="title desc">
+  <title id="title">Kubernetes workload controller relationships</title>
+  <desc id="desc">A Pod runs containers directly, a Deployment manages ReplicaSets and replicated Pods, and a DaemonSet places one Pod on each eligible node.</desc>
+  <style>
+    .box { fill: #f8fafc; stroke: #475569; stroke-width: 2; rx: 10; }
+    .blue { fill: #eff6ff; stroke: #2563eb; }
+    .green { fill: #f0fdf4; stroke: #16a34a; }
+    .arrow { stroke: #64748b; stroke-width: 3; marker-end: url(#m); }
+    text { font-family: sans-serif; fill: #0f172a; }
+    .head { font-size: 18px; font-weight: 700; text-anchor: middle; }
+    .body { font-size: 14px; text-anchor: middle; }
+  </style>
+  <defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker></defs>
+  <rect width="900" height="280" fill="#fff"/>
+  <text x="450" y="32" class="head">Workload ownership and placement</text>
+  <rect x="30" y="75" width="180" height="125" class="box"/>
+  <text x="120" y="108" class="head">Standalone Pod</text><text x="120" y="140" class="body">containers</text><text x="120" y="163" class="body">no replica controller</text>
+  <rect x="270" y="75" width="180" height="125" class="blue"/>
+  <text x="360" y="108" class="head">Deployment</text><text x="360" y="140" class="body">ReplicaSet</text><text x="360" y="163" class="body">desired replicas</text>
+  <rect x="510" y="75" width="180" height="125" class="green"/>
+  <text x="600" y="108" class="head">DaemonSet</text><text x="600" y="140" class="body">one Pod per</text><text x="600" y="163" class="body">eligible node</text>
+  <rect x="735" y="75" width="130" height="125" class="box"/>
+  <text x="800" y="108" class="head">Pods</text><text x="800" y="140" class="body">run on</text><text x="800" y="163" class="body">nodes</text>
+  <path d="M450 215 V235 H800 V205" class="arrow"/>
+  <path d="M690 215 V235 H800" class="arrow"/>
+  <text x="450" y="265" class="body">Controllers reconcile the desired state when Pods fail or nodes change.</text>
+</svg>

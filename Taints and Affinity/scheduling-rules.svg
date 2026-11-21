@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="270" viewBox="0 0 900 270" role="img" aria-labelledby="title desc">
+  <title id="title">Taints, tolerations, and node affinity</title>
+  <desc id="desc">A tainted node rejects a Pod without a toleration, while a toleration plus required affinity permits and selects the node.</desc>
+  <style>
+    .box { fill: #f8fafc; stroke: #475569; stroke-width: 2; rx: 10; }
+    .red { fill: #fff1f2; stroke: #e11d48; }
+    .green { fill: #f0fdf4; stroke: #16a34a; }
+    .arrow { stroke: #64748b; stroke-width: 3; marker-end: url(#m); }
+    text { font-family: sans-serif; fill: #0f172a; }
+    .head { font-size: 18px; font-weight: 700; text-anchor: middle; }
+    .body { font-size: 14px; text-anchor: middle; }
+  </style>
+  <defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker></defs>
+  <rect width="900" height="270" fill="#fff"/>
+  <text x="450" y="32" class="head">Scheduler checks both exclusion and attraction</text>
+  <rect x="30" y="75" width="195" height="130" class="box"/>
+  <text x="127" y="108" class="head">Pod</text><text x="127" y="138" class="body">toleration?</text><text x="127" y="165" class="body">required affinity?</text>
+  <rect x="305" y="55" width="220" height="70" class="red"/>
+  <text x="415" y="87" class="head">No toleration</text><text x="415" y="110" class="body">taint: dedicated=nginx</text>
+  <rect x="305" y="155" width="220" height="70" class="green"/>
+  <text x="415" y="187" class="head">Matching rules</text><text x="415" y="210" class="body">toleration + workload label</text>
+  <rect x="625" y="95" width="235" height="90" class="box"/>
+  <text x="742" y="127" class="head">Target node</text><text x="742" y="153" class="body">tainted and labelled</text><text x="742" y="174" class="body">workload=nginx</text>
+  <path d="M225 120 H295" class="arrow"/><path d="M225 165 H295" class="arrow"/><path d="M525 190 H615" class="arrow"/>
+  <text x="415" y="255" class="body">NoSchedule rejects new Pods; affinity selects a matching node.</text>
+</svg>

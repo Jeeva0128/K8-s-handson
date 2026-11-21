@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="250" viewBox="0 0 900 250" role="img" aria-labelledby="title desc">
+  <title id="title">Kubernetes hands-on lab map</title>
+  <desc id="desc">A cluster foundation leads to workloads, services, and scheduling labs.</desc>
+  <style>
+    .box { fill: #f4f8ff; stroke: #2563eb; stroke-width: 2; rx: 12; }
+    .arrow { stroke: #64748b; stroke-width: 3; marker-end: url(#m); }
+    .label { font: 600 18px sans-serif; fill: #0f172a; text-anchor: middle; }
+    .small { font: 14px sans-serif; fill: #334155; text-anchor: middle; }
+  </style>
+  <defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker></defs>
+  <rect width="900" height="250" fill="#ffffff"/>
+  <text x="450" y="35" class="label">Kubernetes hands-on practice</text>
+  <rect x="35" y="90" width="180" height="95" class="box"/>
+  <text x="125" y="125" class="label">Architecture</text><text x="125" y="151" class="small">Control plane, AWS, kOps</text>
+  <rect x="250" y="90" width="180" height="95" class="box"/>
+  <text x="340" y="125" class="label">Workloads</text><text x="340" y="151" class="small">Pods, Deployments, DaemonSets</text>
+  <rect x="465" y="90" width="180" height="95" class="box"/>
+  <text x="555" y="125" class="label">Services</text><text x="555" y="151" class="small">ClusterIP, NodePort, LoadBalancer</text>
+  <rect x="680" y="90" width="180" height="95" class="box"/>
+  <text x="770" y="125" class="label">Scheduling</text><text x="770" y="151" class="small">Taints and affinity</text>
+  <path d="M215 138 H245" class="arrow"/><path d="M430 138 H460" class="arrow"/><path d="M645 138 H675" class="arrow"/>
+  <text x="450" y="220" class="small">Inspect YAML, run kubectl, observe state, then clean up</text>
+</svg>

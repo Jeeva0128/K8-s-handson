@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="280" viewBox="0 0 900 280" role="img" aria-labelledby="title desc">
+  <title id="title">Kubernetes control plane and worker flow</title>
+  <desc id="desc">kubectl sends requests to the API server, which uses etcd, controllers, and the scheduler to coordinate worker nodes.</desc>
+  <style>
+    .box { fill: #f8fafc; stroke: #475569; stroke-width: 2; rx: 10; }
+    .blue { fill: #eff6ff; stroke: #2563eb; }
+    .green { fill: #f0fdf4; stroke: #16a34a; }
+    .arrow { stroke: #64748b; stroke-width: 3; marker-end: url(#m); }
+    text { font-family: sans-serif; fill: #0f172a; }
+    .head { font-size: 19px; font-weight: 700; text-anchor: middle; }
+    .body { font-size: 14px; text-anchor: middle; }
+  </style>
+  <defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker></defs>
+  <rect width="900" height="280" fill="#fff"/>
+  <rect x="25" y="100" width="120" height="70" class="box"/>
+  <text x="85" y="130" class="head">kubectl</text><text x="85" y="153" class="body">desired state</text>
+  <rect x="190" y="55" width="410" height="160" class="blue" rx="14"/>
+  <text x="395" y="82" class="head">Control plane</text>
+  <rect x="215" y="105" width="115" height="65" class="box"/><text x="272" y="133" class="head">API server</text><text x="272" y="154" class="body">requests</text>
+  <rect x="350" y="105" width="115" height="65" class="box"/><text x="407" y="133" class="head">etcd</text><text x="407" y="154" class="body">cluster state</text>
+  <rect x="485" y="105" width="90" height="65" class="box"/><text x="530" y="133" class="head">Scheduler</text><text x="530" y="154" class="body">placement</text>
+  <rect x="670" y="55" width="205" height="160" class="green" rx="14"/>
+  <text x="772" y="82" class="head">Worker node</text>
+  <rect x="695" y="105" width="155" height="65" class="box"/><text x="772" y="133" class="head">kubelet</text><text x="772" y="154" class="body">Pods + runtime</text>
+  <path d="M145 135 H185" class="arrow"/><path d="M600 135 H665" class="arrow"/>
+  <text x="450" y="250" class="body">AWS and the kOps S3 bucket prepare infrastructure; etcd stores live cluster state.</text>
+</svg>
