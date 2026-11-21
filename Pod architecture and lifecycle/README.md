@@ -4,6 +4,8 @@ In this lab you will inspect a multi-container Pod, compare it with a
 Deployment, scale replicas, and observe a DaemonSet as nodes join the cluster.
 Run the commands from this directory.
 
+![Relationships between Pods, Deployments, ReplicaSets, and DaemonSets](workload-controllers.svg)
+
 ## Prerequisites
 
 You need a working Kubernetes context and `kubectl`. Install Minikube only if

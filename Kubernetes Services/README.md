@@ -7,6 +7,8 @@ selectors, ports, and namespaces are not magic values.
 
 Run commands from the repository root unless a command says otherwise.
 
+![ClusterIP, NodePort, and LoadBalancer traffic paths](service-traffic.svg)
+
 ## Prerequisites
 
 ```bash

@@ -4,6 +4,8 @@ This repository is a small, command-driven Kubernetes lab. Each directory gives
 you manifests to inspect and commands to run against a cluster that you are
 allowed to modify.
 
+![Map of the Kubernetes hands-on labs](docs/kubernetes-labs-overview.svg)
+
 ## Labs
 
 1. [Cluster architecture and AWS/kOps preparation](CLuster-Architecure-Kops/README.md)

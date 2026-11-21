@@ -9,6 +9,8 @@ AWS resources can incur charges. Use an account and region you are permitted
 to use, choose a unique bucket name, and delete resources when the lab is
 complete. Do not copy the example names into a shared AWS account.
 
+![Kubernetes control plane and worker-node flow](kubernetes-control-plane.svg)
+
 ## Part 1: map the architecture
 
 Before using AWS, write down what each component does:
