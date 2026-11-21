@@ -6,6 +6,14 @@ allowed to modify.
 
 ![Map of the Kubernetes hands-on labs](docs/kubernetes-labs-overview.svg)
 
+<p align="center">
+  <img
+    src="minikubelinkedin.drawio.png"
+    alt="Kubernetes Minikube Architecture"
+    width="100%"
+  />
+</p>
+
 ## Labs
 
 1. [Cluster architecture and AWS/kOps preparation](CLuster-Architecure-Kops/README.md)
