@@ -106,6 +106,14 @@ The sidecar log should show the entries written by `app-writer`. The writer
 appends every five seconds, so run the log command again if the Pod has only
 just started.
 
+<p align="center">
+  <img
+    src="../docs/eks-emptydir-verification.png"
+    alt="Terminal verification showing the emptydir-sidecar-demo Pod running with both containers ready"
+    width="100%"
+  />
+</p>
+
 ### Clean up
 
 ```bash
@@ -155,6 +163,14 @@ kubectl describe pod ebs-dynamic-pod
 Confirm the claim is `Bound`, the Pod is `Running`, and the PV is backed by the
 EBS CSI driver. The selected node and volume topology should be compatible.
 
+<p align="center">
+  <img
+    src="../docs/eks-ebs-dynamic-verification.png"
+    alt="Terminal output showing the dynamic EBS PVC bound and its Pod running"
+    width="100%"
+  />
+</p>
+
 ### Persistence test: replace the Pod, keep the claim
 
 Write a record to the mounted filesystem, delete only the Pod, then recreate
@@ -172,6 +188,14 @@ kubectl exec ebs-dynamic-pod -- cat /data/record.txt
 
 The record should still be present after the Pod is recreated because the PVC
 and its EBS-backed PV were not deleted.
+
+<p align="center">
+  <img
+    src="../docs/eks-ebs-persistence-verification.png"
+    alt="Terminal output showing the record file and its timestamp on the EBS-backed filesystem"
+    width="100%"
+  />
+</p>
 
 ### Clean up and confirm automatic volume deletion
 

@@ -86,6 +86,34 @@ and node-affinity scheduling. Labs 2 and 3 require the EBS CSI add-on and its
 required IAM permissions; the static-volume exercise also requires an EBS
 volume and eligible node in the same Availability Zone.
 
+<details>
+<summary>View EKS storage lab screenshots</summary>
+
+<p align="center">
+  <img
+    src="docs/eks-emptydir-verification.png"
+    alt="emptyDir sidecar Pod running with both containers ready"
+    width="100%"
+  />
+</p>
+
+<p align="center">
+  <img
+    src="docs/eks-ebs-dynamic-verification.png"
+    alt="Dynamic EBS claim bound and Pod running"
+    width="100%"
+  />
+</p>
+
+<p align="center">
+  <img
+    src="docs/eks-ebs-persistence-verification.png"
+    alt="Timestamped record verified on the EBS-backed filesystem"
+    width="100%"
+  />
+</p>
+</details>
+
 ## Cleanup
 
 Delete only resources created for the exercise. The detailed guides include
