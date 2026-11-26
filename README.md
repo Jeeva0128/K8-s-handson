@@ -19,6 +19,7 @@ allowed to modify.
 1. [Cluster architecture and AWS/kOps preparation](CLuster-Architecure-Kops/README.md)
 2. [Pods, Deployments, and DaemonSets](Pod%20architecture%20and%20lifecycle/README.md)
 3. [Kubernetes Services](Kubernetes%20Services/README.md)
+4. [Kubernetes Storage & Volumes on Amazon EKS](Kubernetes-Volumes/README.md)
 
 The labs are independent after the cluster is available. The kOps lab is
 specific to AWS; the other labs can use Minikube, kind, or another test

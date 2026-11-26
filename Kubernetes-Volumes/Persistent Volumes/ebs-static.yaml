@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ebs-static-pv
+spec:
+  capacity:
+    storage: 3Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual-ebs
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: vol-0f6adf447d0e48658
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ebs-static-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual-ebs
+  resources:
+    requests:
+      storage: 3Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ebs-static-pod
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: disktype          # Matches the label key on the node
+            operator: In
+            values:
+            - ssd
+  containers:
+  - name: app
+    image: nginx
+    volumeMounts:
+    - name: static-data
+      mountPath: /data
+  volumes:
+  - name: static-data
+    persistentVolumeClaim:
+      claimName: ebs-static-pvc
