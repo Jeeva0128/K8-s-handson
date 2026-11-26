@@ -76,6 +76,16 @@ NodePort, and LoadBalancer behavior. The LoadBalancer resource needs a cloud
 provider or a local implementation such as `minikube tunnel`; otherwise its
 external address can remain `<pending>`.
 
+## Quick start: EKS storage
+
+The [Kubernetes Storage & Volumes lab](Kubernetes-Volumes/README.md) documents
+hands-on storage exercises on Amazon EKS `v1.37.1-eks-9adbfea` in `ap-south-2`.
+It covers Pod-scoped `emptyDir`, dynamic `gp3` EBS provisioning with
+`ReadWriteOnce`, and a statically provisioned EBS volume with a `Retain` policy
+and node-affinity scheduling. Labs 2 and 3 require the EBS CSI add-on and its
+required IAM permissions; the static-volume exercise also requires an EBS
+volume and eligible node in the same Availability Zone.
+
 ## Cleanup
 
 Delete only resources created for the exercise. The detailed guides include
