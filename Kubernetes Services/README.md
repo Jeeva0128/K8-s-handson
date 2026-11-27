@@ -141,6 +141,7 @@ On Minikube, run `minikube tunnel` in a separate terminal before checking the
 Service. Without a cloud integration or tunnel, `<pending>` is expected; the
 Service can still be inspected internally.
 
+
 ## Troubleshooting practice
 
 Use events and EndpointSlices to find the cause rather than repeatedly
@@ -150,6 +151,8 @@ reapplying manifests:
 kubectl get events -n dev --sort-by=.lastTimestamp
 kubectl get events -n qa --sort-by=.lastTimestamp
 kubectl get events -n prod --sort-by=.lastTimestamp
+kubectl get events -n team-a --sort-by=.lastTimestamp
+kubectl get events -n team-b --sort-by=.lastTimestamp
 kubectl describe service nginx-service -n dev
 kubectl describe service nginx-qa -n qa
 kubectl describe service nginx-loadbalancer -n prod
@@ -165,6 +168,16 @@ kubectl delete service nginx-qa -n qa --ignore-not-found
 kubectl delete -f "Kubernetes Services/Nodeport/nginx-qa-deploy.yaml" --ignore-not-found
 kubectl delete -f "Kubernetes Services/LoadBalancer-Services/nginx-loadbalancer.yaml" --ignore-not-found
 kubectl delete -f "Kubernetes Services/LoadBalancer-Services/nginx-prod.yaml" --ignore-not-found
+kubectl delete -f "Kubernetes Services/Ingress/team-a.yaml" --ignore-not-found
+kubectl delete -f "Kubernetes Services/Ingress/team-b.yaml" --ignore-not-found
+```
+
+Deleting both Ingress resources lets the controller remove the shared ALB.
+Delete the `team-a` and `team-b` namespaces only when they are not used by
+anything else:
+
+```bash
+kubectl delete -f "Kubernetes Services/Ingress/namespaces.yaml"
 ```
 
 Delete `dev`, `qa`, and `prod` only when they are not shared with another lab.
@@ -176,3 +189,4 @@ Delete `dev`, `qa`, and `prod` only when they are not shared with another lab.
 | `ClusterIP/` | Nginx Pod, ClusterIP Service, and BusyBox client Pod. |
 | `Nodeport/` | Two-replica Nginx Deployment, plus imperative and declarative NodePort examples. |
 | `LoadBalancer-Services/` | Three-replica Nginx Deployment and LoadBalancer Service. |
+| `Ingress/` | Two team namespaces, Deployments, Services, and path-based Ingress rules sharing an AWS ALB. |
