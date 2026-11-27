@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ephemeral-debug-demo
+  labels:
+    app: ephemeral-debug-demo
+spec:
+  restartPolicy: Never
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["sh", "-c", "echo 'Target application is running'; sleep 3600"]
