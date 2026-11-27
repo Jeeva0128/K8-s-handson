@@ -72,9 +72,14 @@ Deployment and a DaemonSet.
 ## Quick start: Services
 
 The [Services lab](Kubernetes%20Services/README.md) demonstrates ClusterIP,
-NodePort, and LoadBalancer behavior. The LoadBalancer resource needs a cloud
-provider or a local implementation such as `minikube tunnel`; otherwise its
-external address can remain `<pending>`.
+NodePort, LoadBalancer, and path-based Ingress behavior. Its shared AWS ALB
+Ingress exercise is in
+[Kubernetes Services/Ingress](Kubernetes%20Services/Ingress/); it requires an
+AWS cluster with the AWS Load Balancer Controller configured for the cluster's
+VPC and IAM permissions, and may create billable internet-facing resources.
+The LoadBalancer Service exercise needs a cloud provider or a local
+implementation such as `minikube tunnel`; otherwise its external address can
+remain `<pending>`.
 
 ## Quick start: EKS storage
 
